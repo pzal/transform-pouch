@@ -129,6 +129,14 @@ exports.transform = exports.filter = function transform(config) {
       return utils.Promise.resolve(change);
     }
 
+    function syncModifyChange(change) {
+      if (change.doc) {
+        change.doc = outgoing(change.doc);
+        return change;
+      }
+      return change;
+    }
+
     function modifyChanges(res) {
       if (res.results) {
         return utils.Promise.all(res.results.map(modifyChange)).then(function (results) {
@@ -139,18 +147,22 @@ exports.transform = exports.filter = function transform(config) {
       return utils.Promise.resolve(res);
     }
 
+    function syncModifyChanges(res) {
+      if (res.results) {
+        res.results = res.results.map(syncModifyChange);
+        return res;
+      }
+      return res;
+    }
+
     var changes = orig();
     // override some events
     var origEmit = changes.emit;
     changes.emit = function (event, data) {
       if (event === 'change') {
-        return modifyChange(data).then(function (resp) {
-          return origEmit.apply(changes, [event, resp]);
-        });
+        return origEmit.apply(changes, [event, syncModifyChange(data)]);
       } else if (event === 'complete') {
-        return modifyChanges(data).then(function (resp) {
-          return origEmit.apply(changes, [event, resp]);
-        });
+        return origEmit.apply(changes, [event, syncModifyChanges(data)]);
       }
       return origEmit.apply(changes, [event, data]);
     };
