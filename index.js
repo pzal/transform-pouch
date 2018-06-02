@@ -141,27 +141,39 @@ exports.transform = exports.filter = function transform(config) {
     }
 
     var changes = orig();
+    changes._listenerMapping = {};
     // override some events
     var origOn = changes.on;
     changes.on = function (event, listener) {
+      var handler = listener;
       if (event === 'change') {
-        return origOn.apply(changes, [event, function (change) {
+        handler = function (change) {
           modifyChange(change).then(function (resp) {
             immediate(function () {
               listener(resp);
             });
           });
-        }]);
+        };
       } else if (event === 'complete') {
-        return origOn.apply(changes, [event, function (res) {
-          modifyChanges(res).then(function (resp) {
+        handler = function (change) {
+          modifyChanges(change).then(function (resp) {
             process.nextTick(function () {
               listener(resp);
             });
           });
-        }]);
+        };
       }
-      return origOn.apply(changes, [event, listener]);
+      changes._listenerMapping[listener] = handler;
+      return origOn.apply(changes, [event, handler]);
+    };
+
+    var origRemoveListener = changes.removeListener;
+    changes.removeListener = function (event, listener) {
+      if (!(listener in this._listenerMapping)) {
+        return;
+      }
+      origRemoveListener.call(this, event, this._listenerMapping[listener]);
+      delete this._listenerMapping[listener];
     };
 
     var origThen = changes.then;
