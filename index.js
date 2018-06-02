@@ -142,26 +142,22 @@ exports.transform = exports.filter = function transform(config) {
 
     var changes = orig();
     // override some events
-    var origOn = changes.on;
-    changes.on = function (event, listener) {
+    var origEmit = changes.emit;
+    changes.emit = function (event, data) {
       if (event === 'change') {
-        return origOn.apply(changes, [event, function (change) {
-          modifyChange(change).then(function (resp) {
-            immediate(function () {
-              listener(resp);
-            });
+        modifyChange(data).then(function (resp) {
+          immediate(function () {
+            origEmit.apply(changes, [event, resp]);
           });
-        }]);
+        });
       } else if (event === 'complete') {
-        return origOn.apply(changes, [event, function (res) {
-          modifyChanges(res).then(function (resp) {
-            process.nextTick(function () {
-              listener(resp);
-            });
+        modifyChanges(data).then(function (resp) {
+          immediate(function () {
+            origEmit.apply(changes, [event, resp]);
           });
-        }]);
+        });
       }
-      return origOn.apply(changes, [event, listener]);
+      return origEmit.apply(changes, [event, data]);
     };
 
     var origThen = changes.then;
