@@ -3,7 +3,6 @@
 var Promise = require('lie');
 var utils = require('./pouch-utils');
 var wrappers = require('pouchdb-wrappers');
-var immediate = require('immediate');
 
 function isntInternalKey(key) {
   return key[0] !== '_';
@@ -145,16 +144,12 @@ exports.transform = exports.filter = function transform(config) {
     var origEmit = changes.emit;
     changes.emit = function (event, data) {
       if (event === 'change') {
-        modifyChange(data).then(function (resp) {
-          immediate(function () {
-            origEmit.apply(changes, [event, resp]);
-          });
+        return modifyChange(data).then(function (resp) {
+          return origEmit.apply(changes, [event, resp]);
         });
       } else if (event === 'complete') {
-        modifyChanges(data).then(function (resp) {
-          immediate(function () {
-            origEmit.apply(changes, [event, resp]);
-          });
+        return modifyChanges(data).then(function (resp) {
+          return origEmit.apply(changes, [event, resp]);
         });
       }
       return origEmit.apply(changes, [event, data]);

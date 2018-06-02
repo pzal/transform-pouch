@@ -16,7 +16,7 @@ chai.use(require("chai-as-promised"));
 var should = chai.should();
 var Promise = require('lie');
 
-var dbs = 'testdb,http://localhost:5984/testdb';
+var dbs = 'testdb';
 
 dbs.split(',').forEach(function (db) {
   var dbType = /^http/.test(db) ? 'http' : 'local';
@@ -25,7 +25,7 @@ dbs.split(',').forEach(function (db) {
 
 function tests(dbName, dbType) {
   describe(dbType + ': basic tests', function () {
-    this.timeout(30000);
+    this.timeout(2000);
 
     var db;
 
@@ -685,7 +685,7 @@ function tests(dbName, dbType) {
   });
 
   describe(dbType + ': advanced tests', function () {
-    this.timeout(30000);
+    this.timeout(2000);
 
     var db;
 
@@ -929,7 +929,7 @@ function tests(dbName, dbType) {
   });
 
   describe(dbType + ': replication tests', function () {
-    this.timeout(30000);
+    this.timeout(2000);
 
     var db;
     var remote;
